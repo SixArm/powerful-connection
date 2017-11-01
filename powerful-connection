@@ -68,7 +68,6 @@
 #
 #   * We use the `brew` command to manage many of our software tools.
 #
-#   * We use the `npm` command for node package management.
 #
 # ## References
 #
@@ -115,17 +114,17 @@ die() { >&2 printf %s\\n "Die $1" ; exit "$2" ; }
 
 # Is the computer running on AC power?
 pmset_ac_power(){
-	pmset -g ps | grep  -qm1 "'AC Power'" 
+    pmset -g ps | grep  -qm1 "'AC Power'" 
 }
 
 # Is the battery fully charged?
 pmset_battery_full(){
-	pmset -g batt | grep -qm1 'InternalBattery-0 .*100%;'
+    pmset -g batt | grep -qm1 'InternalBattery-0 .*100%;'
 }
 
 # Count how many processors are physcially available
 hostinfo_processors_physically_available(){
-	hostinfo | sed -n 's/^\([[:digit:]\+]\) processors are physically available./\1/p'
+    hostinfo | sed -n 's/^\([[:digit:]\+]\) processors are physically available./\1/p'
 }
 
 # Get the longest load average number as an integer
@@ -135,7 +134,7 @@ sysctl_loadavg_int(){
 
 # Get the current airport SSID name
 airport_ssid_name(){
-	/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -n 's/^ *SSID: //p' | grep '.'
+    /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -n 's/^ *SSID: //p' | grep '.'
 }
 
 ### Power

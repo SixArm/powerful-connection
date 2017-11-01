@@ -173,25 +173,19 @@ processor_load_ok ||
 ssid=$(airport_ssid_name) ||
     die "because we do not have a SSID" 30
 
-if [ ! -z "$whitelist_text" ]; then 
-    [[ "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]] ||
-        die "because the SSID is not in the whitelist text: $ssid" 31
+if [[ ! -z "$whitelist_text" && ! "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]]; then 
+        die "because there's whitelist text but the SSID isn't in it: $ssid" 31
 fi
 
-if [ ! -z "$blacklist_text" ]; then
-    [[ "$blacklist_text" =~ $'\n'"$ssid"$'\n' ]] &&
-        die "because the SSID is in the blacklist text: $ssid" 32
+if [[ ! -z "$blacklist_text" && "$blacklist_text" =~ $'\n'"$ssid"$'\n' ]]; then
+        die "because there's blacklist text and the SSID is in it: $ssid" 32
 fi
 
-if [ -r "$whitelist_file" ]; then
-    grep -qFxm1 "$ssid" "$whitelist_file" ||
-        die "because the SSID is not in the whitelist file: $ssid $whitelist_file" 33
-fi
+(test -r "$whitelist_file" && grep -qFxm1 "$ssid" "$whitelist_file") ||
+        die "because there's a whitelist file but the SSID isn't in it: $whitelist_file $ssid" 33
 
-if [ -r "$blacklist_file" ]; then
-    grep -qFxm1 "$ssid" "$blacklist_file" &&
-        die "because the SSID is in the blacklist file: $ssid $blacklist_file" 34
-fi
+(test -r "$blacklist_file" && grep -qFxm1 "$ssid" "$blacklist_file") &&
+        die "because there's a blacklist file and the SSID is in it: $blacklist_file $ssid" 34
 
 
 ### We now have a powerful connection

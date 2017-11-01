@@ -1,0 +1,165 @@
+#!/bin/bash
+
+###
+# This macOS script determines if we have a "powerful connection".
+#
+# The phrase "powerful connection" is our nickname for when our laptop
+# is fully powered up, and has a good wireless connection suitable for
+# significant networking, such as downloading big files or streaming data.
+#
+# ## Details
+#
+# This script runs these checks:
+#
+#   * The computer is running on AC power.
+#   * The battery is fully charged.
+#   * The CPU has available processing cycles.
+#   * The wifi is working.
+#   * The script has a list of known good SSIDs.
+#   * The SSID is in a list of known good SSIDs.
+#
+# ## Ideas
+#
+# We use this script for optionally running large network jobs.
+# For example, we use a daily job that checks for a powerful connection,
+# and if so, then the job downloads any available software updates.
+#
+# We use this script as a way to check if we should run streaming.
+# For example, we use this script to do a check when a user signs in:
+# if the user has a powerful connection, then we launch video streaming.
+#
+# ## Exit codes
+#
+#   * 0: success
+#   * 1x: power issue
+#   * 10: computer power is not plugged in
+#   * 11: battery power is not fully charged
+#   * 12: processing power is not readily available
+#   * 2x: connection issue
+#   * 20: ssid unavailable
+#   * 21: missing list of known good ssid names
+#   * 22: ssid not in list of known good ssid names
+# 
+# ## Configuration
+#
+# This script uses a variable that is a list of known good SSID names.
+# You need to edit this list to add your favorite wifi SDD names.
+#
+# If you prefer to manage the list with a data file,
+# then see https://github.com/sixarm/ssid-powerful
+#
+# ## Cron example
+#
+# We like using the `cron` command to schedule recurring jobs.
+# For example, each night we check if we have powerful wifi, 
+# and if so, then we upgrade our system software and apps.
+#
+#   * We use the `nice` command to run the job at lower priority.
+#
+#   * We use the `softwareupdate` command to update macOS.
+#
+#   * We use the `brew` command to manage many of our software tools.
+#
+# Example crontab lines:
+#
+#     0 0 * * * powerful-connection && nice softwareupdate --install --all
+#     0 1 * * * powerful-connection && nice brew upgrade --cleanup
+#     0 2 * * * powerful-connection && nice npm update -g
+#
+# ## References
+#
+# This script is related to these repositories:
+#
+#   * https://github.com/sixarm/airport-ssid
+#   * https://github.com/sixarm/pmset-scripts
+#   * https://github.com/sixarm/ssid-powerful
+#   * https://github.com/updatecommand/update
+#
+# ## Disclaimers
+#
+#   * This script is suitable for demonstration purposes.
+#   * There is no warranty, express or implied.
+#   * Use at your own risk.
+#   * Your mileage may vary. 
+#
+# ## Tracking
+#
+#   * Command: power-wifi
+#   * Version: 1.1.1
+#   * Created: 2015-07-01
+#   * Updated: 2017-11-01
+#   * License: GPL
+#   * Contact: Joel Parker Henderson (joel@joelparkerhenderson.com)
+#
+###
+
+### Configuration
+
+list_of_known_good_ssid_names="
+Foo
+Goo
+Hoo
+"
+
+### Helpers
+
+out() { >&1 printf %s\\n "$1" ; }
+err() { >&2 printf %s\\n "$1" ; }
+die() { >&2 printf %s\\n "Die $1" ; exit "$2" ; }
+
+### Utilties
+
+# Is the computer running on AC power?
+pmset_ac_power(){
+	pmset -g ps | grep  -qm1 "'AC Power'" 
+}
+
+# Is the battery fully charged?
+pmset_battery_full(){
+	pmset -g batt | grep -qm1 'InternalBattery-0 .*100%;'
+}
+
+# Count how many processors are physcially available
+hostinfo_processors_physically_available(){
+	hostinfo | sed -n 's/^\([[:digit:]\+]\) processors are physically available./\1/p'
+}
+
+# Get the longest load average number as an integer
+sysctl_loadavg_int(){
+    sysctl -n vm.loadavg | sed -n 's/.* \([[:digit:]\+]\).*/\1/p'
+}
+
+# Get the current airport SSID name
+airport_ssid_name(){
+	/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -n 's/^ *SSID: //p' | grep '.'
+}
+
+### Power
+
+# Are we running on AC power?
+pmset_ac_power ||
+    die "because the computer power is not plugged in" 10
+
+# Is our battery fully charged?
+pmset_battery_full ||
+    die "because the battery power is not fully charged" 11
+
+# Does our processor have cycles available?
+[ "$(sysctl_loadavg_int)" -le "$(hostinfo_processors_physically_available)" ] ||
+    die "because processesing power is not readily available" 12
+
+### Connection
+
+# What is our wireless SSID?
+ssid=$(airport_ssid_name) ||
+    die "because we do not have a SSID" 20
+
+# Do we have a list of known good ssid names?
+[ ! -z ${list_of_known_good_ssid_names+x} ] || 
+    die "because there is no list of known good SSID names" 21
+
+# Is our wireless SSID in our ssid good list?
+[[ "$list_of_known_good_ssid_names" =~ $'\n'"$ssid"$'\n' ]] || 
+    die "because the SSID is not in the good list: $ssid" 22
+
+exit 0

@@ -139,30 +139,26 @@ airport_ssid_name(){
 
 ### Power
 
-# Are we running on AC power?
 pmset_ac_power ||
     die "because the computer power is not plugged in" 10
 
-# Is our battery fully charged?
 pmset_battery_full ||
     die "because the battery power is not fully charged" 11
 
-# Does our processor have cycles available?
 [ "$(sysctl_loadavg_int)" -le "$(hostinfo_processors_physically_available)" ] ||
     die "because processesing power is not readily available" 12
 
 ### Connection
 
-# What is our wireless SSID?
 ssid=$(airport_ssid_name) ||
     die "because we do not have a SSID" 20
 
-# Do we have a list of known good ssid names?
 [ ! -z ${list_of_known_good_ssid_names+x} ] || 
     die "because there is no list of known good SSID names" 21
 
-# Is our wireless SSID in our ssid good list?
 [[ "$list_of_known_good_ssid_names" =~ $'\n'"$ssid"$'\n' ]] || 
     die "because the SSID is not in the good list: $ssid" 22
+
+### We have a powerful connection
 
 exit 0

@@ -83,7 +83,7 @@ This script is related to these repositories:
 
 ## Tracking
 
-  * Command: power-wifi
+  * Command: powerful-connection
   * Version: 1.1.1
   * Created: 2015-07-01
   * Updated: 2017-11-01

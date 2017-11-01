@@ -6,6 +6,7 @@ The phrase "powerful connection" is our nickname for when our laptop
 is fully powered up, and has a good wireless connection suitable for
 significant networking, such as downloading big files or streaming data.
 
+
 ## Details
 
 This script runs these checks:
@@ -17,6 +18,7 @@ This script runs these checks:
   * The script has a list of known good SSIDs.
   * The SSID is in a list of known good SSIDs.
 
+
 ## Ideas
 
 We use this script for optionally running large network jobs.
@@ -26,6 +28,7 @@ and if so, then the job downloads any available software updates.
 We use this script as a way to check if we should run streaming.
 For example, we use this script to do a check when a user signs in:
 if the user has a powerful connection, then we launch video streaming.
+
 
 ## Exit codes
 
@@ -39,15 +42,23 @@ if the user has a powerful connection, then we launch video streaming.
   * 21: missing list of known good ssid names
   * 22: ssid not in list of known good ssid names
 
+
 ## Configuration
 
-This script uses a variable that is a list of known good SSID names.
-You need to edit this list to add your favorite wifi SDD names.
+This script uses a list of known good SSID names.
 
-If you prefer to manage the list with a data file,
-then see https://github.com/sixarm/ssid-powerful
+You edit this list to add your favorite wifi SDD names.
 
-## Cron example
+Create this file:
+
+    ~/.config/powerful-connecton/ssid.txt
+
+Add any SSID names that you want to be considered good.
+
+Add each SSID name on its own line.
+
+
+## Cron
 
 We like using the `cron` command to schedule recurring jobs.
 For example, each night we check if we have powerful wifi, 
@@ -69,6 +80,7 @@ Details:
 
   * We use the `npm` command for node package management.
 
+
 ## References
 
 This script is related to these repositories:
@@ -78,12 +90,14 @@ This script is related to these repositories:
   * https://github.com/sixarm/ssid-powerful
   * https://github.com/updatecommand/update
 
+
 ## Disclaimers
 
   * This script is suitable for demonstration purposes.
   * There is no warranty, express or implied.
   * Use at your own risk.
   * Your mileage may vary. 
+
 
 ## Tracking
 

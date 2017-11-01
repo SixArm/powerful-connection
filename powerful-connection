@@ -54,17 +54,21 @@
 # For example, each night we check if we have powerful wifi, 
 # and if so, then we upgrade our system software and apps.
 #
+# Example crontab lines:
+#
+#     0 0 * * * powerful-connection && nice softwareupdate --install --all
+#     0 1 * * * powerful-connection && nice brew upgrade --cleanup
+#     0 2 * * * powerful-connection && nice npm update -g
+#
+# Details:
+#
 #   * We use the `nice` command to run the job at lower priority.
 #
 #   * We use the `softwareupdate` command to update macOS.
 #
 #   * We use the `brew` command to manage many of our software tools.
 #
-# Example crontab lines:
-#
-#     0 0 * * * powerful-connection && nice softwareupdate --install --all
-#     0 1 * * * powerful-connection && nice brew upgrade --cleanup
-#     0 2 * * * powerful-connection && nice npm update -g
+#   * We use the `npm` command for node package management.
 #
 # ## References
 #

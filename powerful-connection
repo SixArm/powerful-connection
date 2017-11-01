@@ -40,18 +40,18 @@
 #   * 22: processing power is not sufficient
 #   * 3x: connection issue
 #   * 30: ssid unavailable
-#   * 31: ssid is in blacklist text
-#   * 32: ssid is not in whitelist text
-#   * 33: ssid is in blacklist file
-#   * 34: ssid is not in whitelist file
+#   * 31: ssid is not in whitelist text
+#   * 32: ssid is in blacklist text
+#   * 33: ssid is not in whitelist file
+#   * 34: ssid is in blacklist file
 #
 # 
 # ## Configuration
 #
 # Create these two files:
 #
-#     ~/.config/powerful-connecton/blacklist.txt
 #     ~/.config/powerful-connecton/whitelist.txt
+#     ~/.config/powerful-connecton/blacklist.txt
 #
 # Add any SSID names that you want to either list.
 #
@@ -107,12 +107,14 @@
 #
 ###
 
+
 ### Helpers
 
 out() { >&1 printf %s\\n "$1" ; }
 err() { >&2 printf %s\\n "$1" ; }
 die() { >&2 printf %s\\n "Die $1" ; exit "$2" ; }
 cfg() { out "${XDG_CONFIG_HOME:-$HOME/.config}/$(basename "$0")" ; }
+
 
 ### Configuration
 
@@ -125,6 +127,7 @@ blacklist_text=""
 # then edit these files as you like, with one SSID name per line.
 blacklist_file="$(cfg)/blacklist.txt" 
 whitelist_file="$(cfg)/whitelist.txt"
+
 
 ### Utilties
 
@@ -164,30 +167,32 @@ battery_charge_ok ||
 processor_load_ok ||
     die "because the processesor power is overloaded" 22
 
+
 ### Connection
 
 ssid=$(airport_ssid_name) ||
     die "because we do not have a SSID" 30
+
+if [ ! -z "$whitelist_text" ]; then 
+    [[ "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]] ||
+        die "because the SSID is not in the whitelist text: $ssid" 31
+fi
 
 if [ ! -z "$blacklist_text" ]; then
     [[ "$blacklist_text" =~ $'\n'"$ssid"$'\n' ]] &&
         die "because the SSID is in the blacklist text: $ssid" 32
 fi
 
-if [ ! -z "$whitelist_text" ]; then 
-    [[ "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]] ||
-        die "because the SSID is not in the whitelist text: $ssid" 33
+if [ -r "$whitelist_file" ]; then
+    grep -qFxm1 "$ssid" "$whitelist_file" ||
+        die "because the SSID is not in the whitelist file: $ssid $whitelist_file" 33
 fi
 
 if [ -r "$blacklist_file" ]; then
     grep -qFxm1 "$ssid" "$blacklist_file" &&
-        die "because the SSID is in the blacklist file: $ssid, $blacklist_file" 34
+        die "because the SSID is in the blacklist file: $ssid $blacklist_file" 34
 fi
 
-if [ -r "$whitelist_file" ]; then
-    grep -qFxm1 "$ssid" "$whitelist_file" ||
-        die "because the SSID is not in the whitelist file: $ssid, $whitelist_file" 35
-fi
 
 ### We now have a powerful connection
 

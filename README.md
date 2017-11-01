@@ -33,18 +33,16 @@ if the user has a powerful connection, then we launch video streaming.
 ## Exit codes
 
   * 0: success
-  * 1x: config issue
-  * 10: missing config directory
-  * 11: missing blacklist
-  * 12: missing whitelist
   * 2x: power issue
   * 20: computer power is not plugged in
   * 21: battery power is not fully charged
   * 22: processing power is not sufficient
   * 3x: connection issue
   * 30: ssid unavailable
-  * 31: ssid in blacklist
-  * 32: ssid not in whitelist
+  * 31: ssid is not in whitelist text
+  * 32: ssid is in blacklist text
+  * 33: ssid is not in whitelist file
+  * 34: ssid is in blacklist file
 
 
 ## Configuration

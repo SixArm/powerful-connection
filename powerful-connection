@@ -125,8 +125,8 @@ blacklist_text=""
 
 # IF you want to use config files for your whitelist or blacklist,
 # then edit these files as you like, with one SSID name per line.
-blacklist_file="$(cfg)/blacklist.txt" 
 whitelist_file="$(cfg)/whitelist.txt"
+blacklist_file="$(cfg)/blacklist.txt" 
 
 
 ### Utilties

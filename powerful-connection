@@ -34,27 +34,26 @@
 # ## Exit codes
 #
 #   * 0: success
-#   * 1x: power issue
-#   * 10: computer power is not plugged in
-#   * 11: battery power is not fully charged
-#   * 12: processing power is not readily available
-#   * 2x: connection issue
-#   * 20: ssid unavailable
-#   * 21: missing list of known good ssid names
-#   * 22: ssid not in list of known good ssid names
+#   * 2x: power issue
+#   * 20: computer power is not plugged in
+#   * 21: battery power is not fully charged
+#   * 22: processing power is not sufficient
+#   * 3x: connection issue
+#   * 30: ssid unavailable
+#   * 31: ssid is in blacklist text
+#   * 32: ssid is not in whitelist text
+#   * 33: ssid is in blacklist file
+#   * 34: ssid is not in whitelist file
 #
 # 
 # ## Configuration
 #
-# This script uses a list of known good SSID names.
+# Create these two files:
 #
-# You edit this list to add your favorite wifi SDD names.
+#     ~/.config/powerful-connecton/blacklist.txt
+#     ~/.config/powerful-connecton/whitelist.txt
 #
-# Create this file:
-#
-#     ~/.config/powerful-connecton/ssid.txt
-#
-# Add any SSID names that you want to be considered good.
+# Add any SSID names that you want to either list.
 #
 # Add each SSID name on its own line.
 #
@@ -115,6 +114,18 @@ err() { >&2 printf %s\\n "$1" ; }
 die() { >&2 printf %s\\n "Die $1" ; exit "$2" ; }
 cfg() { out "${XDG_CONFIG_HOME:-$HOME/.config}/$(basename "$0")" ; }
 
+### Configuration
+
+# IF you want to use this source code for your whitelist or blacklist,
+# then edit these variables as you like, with one SSID name per line.
+whitelist_text=""
+blacklist_text=""
+
+# IF you want to use config files for your whitelist or blacklist,
+# then edit these files as you like, with one SSID name per line.
+blacklist_file="$(cfg)/blacklist.txt" 
+whitelist_file="$(cfg)/whitelist.txt"
+
 ### Utilties
 
 ac_power_ok(){
@@ -141,31 +152,43 @@ airport_ssid_name(){
     /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -n 's/^ *SSID: //p' | grep '.'
 }
 
+
 ### Power
 
 ac_power_ok ||
-    die "because the computer power is not plugged in" 10
+    die "because the computer power is not plugged in" 20
 
 battery_charge_ok ||
-    die "because the battery power is not fully charged" 11
+    die "because the battery power is not fully charged" 21
 
 processor_load_ok ||
-    die "because the processesor power is overloaded" 12
+    die "because the processesor power is overloaded" 22
 
 ### Connection
 
 ssid=$(airport_ssid_name) ||
-    die "because we do not have a SSID" 20
+    die "because we do not have a SSID" 30
 
-[ -e "$(cfg)" ] ||
-    die "because there is no config directory: $(cfg)" 21
+if [ ! -z "$blacklist_text" ]; then
+    [[ "$blacklist_text" =~ $'\n'"$ssid"$'\n' ]] &&
+        die "because the SSID is in the blacklist text: $ssid" 32
+fi
 
-good="$(cfg)/ssid.txt" && [ -r "$good" ] || 
-    die "because there is no config file of good SSID names: $good" 22
+if [ ! -z "$whitelist_text" ]; then 
+    [[ "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]] ||
+        die "because the SSID is not in the whitelist text: $ssid" 33
+fi
 
-grep -qFxm1 "$ssid" "$good" ||
-    die "because the SSID is not among the good SSID names: $ssid, $good" 22
+if [ -r "$blacklist_file" ]; then
+    grep -qFxm1 "$ssid" "$blacklist_file" &&
+        die "because the SSID is in the blacklist file: $ssid, $blacklist_file" 34
+fi
 
-### We have a powerful connection
+if [ -r "$whitelist_file" ]; then
+    grep -qFxm1 "$ssid" "$whitelist_file" ||
+        die "because the SSID is not in the whitelist file: $ssid, $whitelist_file" 35
+fi
+
+### We now have a powerful connection
 
 exit 0

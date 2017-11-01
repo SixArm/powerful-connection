@@ -33,27 +33,28 @@ if the user has a powerful connection, then we launch video streaming.
 ## Exit codes
 
   * 0: success
-  * 1x: power issue
-  * 10: computer power is not plugged in
-  * 11: battery power is not fully charged
-  * 12: processing power is not readily available
-  * 2x: connection issue
-  * 20: ssid unavailable
-  * 21: missing list of known good ssid names
-  * 22: ssid not in list of known good ssid names
+  * 1x: config issue
+  * 10: missing config directory
+  * 11: missing blacklist
+  * 12: missing whitelist
+  * 2x: power issue
+  * 20: computer power is not plugged in
+  * 21: battery power is not fully charged
+  * 22: processing power is not sufficient
+  * 3x: connection issue
+  * 30: ssid unavailable
+  * 31: ssid in blacklist
+  * 32: ssid not in whitelist
 
 
 ## Configuration
 
-This script uses a list of known good SSID names.
+Create these files:
 
-You edit this list to add your favorite wifi SDD names.
+    ~/.config/powerful-connecton/blacklist.txt
+    ~/.config/powerful-connecton/whitelist.txt
 
-Create this file:
-
-    ~/.config/powerful-connecton/ssid.txt
-
-Add any SSID names that you want to be considered good.
+Add any SSID names that you want to either list.
 
 Add each SSID name on its own line.
 

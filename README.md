@@ -47,6 +47,7 @@ if the user has a powerful connection, then we launch video streaming.
 
 ## Configuration
 
+
 Create these files:
 
     ~/.config/powerful-connecton/blacklist.txt
@@ -85,8 +86,10 @@ Details:
 This script is related to these repositories:
 
   * https://github.com/sixarm/airport-ssid
-  * https://github.com/sixarm/pmset-scripts
+  * https://github.com/sixarm/hostinfo-commands
+  * https://github.com/sixarm/pmset-commands
   * https://github.com/sixarm/ssid-powerful
+  * https://github.com/sixarm/sysctl-commands
   * https://github.com/updatecommand/update
 
 
@@ -101,8 +104,8 @@ This script is related to these repositories:
 ## Tracking
 
   * Command: powerful-connection
-  * Version: 1.1.1
+  * Version: 1.2.0
   * Created: 2015-07-01
-  * Updated: 2017-11-01
+  * Updated: 2017-11-04
   * License: GPL
   * Contact: Joel Parker Henderson (joel@joelparkerhenderson.com)

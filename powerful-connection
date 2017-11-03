@@ -84,8 +84,10 @@
 # This script is related to these repositories:
 #
 #   * https://github.com/sixarm/airport-ssid
-#   * https://github.com/sixarm/pmset-scripts
+#   * https://github.com/sixarm/hostinfo-commands
+#   * https://github.com/sixarm/pmset-commands
 #   * https://github.com/sixarm/ssid-powerful
+#   * https://github.com/sixarm/sysctl-commands
 #   * https://github.com/updatecommand/update
 #
 # ## Disclaimers
@@ -99,9 +101,9 @@
 # ## Tracking
 #
 #   * Command: powerful-connection
-#   * Version: 1.1.1
+#   * Version: 1.2.0
 #   * Created: 2015-07-01
-#   * Updated: 2017-11-01
+#   * Updated: 2017-11-04
 #   * License: GPL
 #   * Contact: Joel Parker Henderson (joel@joelparkerhenderson.com)
 #
@@ -112,7 +114,7 @@
 
 out() { >&1 printf %s\\n "$1" ; }
 err() { >&2 printf %s\\n "$1" ; }
-die() { >&2 printf %s\\n "Die $1" ; exit "$2" ; }
+die() { >&2 printf %s\\n "Die $2" ; exit "$1" ; }
 cfg() { out "${XDG_CONFIG_HOME:-$HOME/.config}/$(basename "$0")" ; }
 
 
@@ -123,71 +125,104 @@ cfg() { out "${XDG_CONFIG_HOME:-$HOME/.config}/$(basename "$0")" ; }
 whitelist_text=""
 blacklist_text=""
 
-# IF you want to use config files for your whitelist or blacklist,
+# If you want to use config files for your whitelist or blacklist,
 # then edit these files as you like, with one SSID name per line.
 whitelist_file="$(cfg)/whitelist.txt"
 blacklist_file="$(cfg)/blacklist.txt" 
 
-
 ### Utilties
 
-ac_power_ok(){
-    pmset -g ps | grep  -qm1 "'AC Power'" 
+pmset_drawing(){
+    pmset -g ps | sed -n "s/^Now drawing from '\(.\+\).*'/\1/p"
+}
+pmset_drawing_ac_power(){
+    pmset -g ps | grep  -qm1 "Now drawing from 'AC Power'" 
 }
 
-battery_charge_ok(){
+pmset_drawing_battery_power(){
+    pmset -g ps | grep  -qm1 "Now drawing from 'Battery Power'" 
+}
+
+pmset_battery_full(){
     pmset -g batt | grep -qm1 'InternalBattery-0 .*100%;'
 }
 
-processor_load_ok(){
-    [ "$(processor_count)" -ge "$(processor_loadavg_int)" ]
+pmset_battery_percent(){
+    pmset -g batt | sed -n 's/.*InternalBattery-0 .*[^[:digit:]]\([[:digit:]]\+\)%.*/\1/p'
 }
 
-processor_count(){
-    hostinfo | sed -n 's/^\([[:digit:]\+]\) processors are physically available./\1/p'
+sysctl_hw_physical_cpu(){
+    sysctl -n hw.physicalcpu
 }
 
-processor_loadavg_int(){
-    sysctl -n vm.loadavg | sed -n 's/.* \([[:digit:]\+]\).*/\1/p'
+sysctl_vm_loadavg_long(){
+    sysctl -n vm.loadavg | sed -n 's/.* \([[:digit:]\.]\+\).*/\1/p'
 }
 
-airport_ssid_name(){
+sysctl_vm_loadavg_per_physical_cpu(){
+    out $(perl -e 'printf("%.2f", $ARGV[0] / $ARGV[1]);' $(sysctl_vm_loadavg_long) $(sysctl -n hw.physicalcpu))
+}
+
+sysctl_vm_loadable(){
+    perl -e 'exit((($ARGV[0] / $ARGV[1]) < 2) ? 0 : 1);' $(sysctl_vm_loadavg_long) $(sysctl -n hw.physicalcpu)
+}
+
+airport_ssid(){
     /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -n 's/^ *SSID: //p' | grep '.'
 }
 
 
-### Power
+### Domain
 
-ac_power_ok ||
-    die "because the computer power is not plugged in" 20
+power_source_ok(){
+    pmset_drawing_ac_power ||
+        die 20 "because the power source needs to be AC power"
+}
 
-battery_charge_ok ||
-    die "because the battery power is not fully charged" 21
+battery_charge_ok(){
+    pmset_battery_full ||
+        die 21 "because the battery charge needs to be full" 
+}
 
-processor_load_ok ||
-    die "because the processesor power is overloaded" 22
+processor_load_ok(){
+    sysctl_vm_loadable ||
+        die 22 "because the processesor load needs to be lower" 
+}
+
+ssid_ok(){
+    airport_ssid > /dev/null ||
+        die 30 "because we do not have a SSID"
+}
+
+ssid_whitelist_blacklist_ok(){
+    ssid=$(airport_ssid)
+
+    if [[ ! -z "$whitelist_text" && ! "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]]; then 
+        die 31 "because there's whitelist text but the SSID isn't in it: $ssid"
+    fi
+
+    if [[ ! -z "$blacklist_text" && "$blacklist_text" =~ $'\n'"$ssid"$'\n' ]]; then
+        die 32 "because there's blacklist text and the SSID is in it: $ssid"
+    fi
+
+    if [ -r "$whitelist_file" ]; then 
+        grep -qFxm1 "$ssid" "$whitelist_file" ||
+            die 33 "because there's a whitelist file but the SSID isn't in it: $whitelist_file $ssid"
+    fi
+
+    if [ -r "$blacklist_file" ]; then
+        grep -qFxm1 "$ssid" "$blacklist_file" &&
+            die 34 "because there's a blacklist file and the SSID is in it: $blacklist_file $ssid"
+    fi
+
+}
 
 
-### Connection
+### Main
 
-ssid=$(airport_ssid_name) ||
-    die "because we do not have a SSID" 30
-
-if [[ ! -z "$whitelist_text" && ! "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]]; then 
-        die "because there's whitelist text but the SSID isn't in it: $ssid" 31
-fi
-
-if [[ ! -z "$blacklist_text" && "$blacklist_text" =~ $'\n'"$ssid"$'\n' ]]; then
-        die "because there's blacklist text and the SSID is in it: $ssid" 32
-fi
-
-(test -r "$whitelist_file" && grep -qFxm1 "$ssid" "$whitelist_file") ||
-        die "because there's a whitelist file but the SSID isn't in it: $whitelist_file $ssid" 33
-
-(test -r "$blacklist_file" && grep -qFxm1 "$ssid" "$blacklist_file") &&
-        die "because there's a blacklist file and the SSID is in it: $blacklist_file $ssid" 34
-
-
-### We now have a powerful connection
-
+power_source_ok
+battery_charge_ok
+processor_load_ok
+ssid_ok
+ssid_whitelist_blacklist_ok
 exit 0

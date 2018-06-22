@@ -1,218 +1,213 @@
 #!/bin/bash
+set -euf
 
-###
-# This macOS script determines if we have a "powerful connection".
-#
-# The phrase "powerful connection" is our nickname for when our laptop
-# is fully powered up, and has a good wireless connection suitable for
-# significant networking, such as downloading big files or streaming data.
-#
-#
-# ## Details
-#
-# This script runs these checks:
-#
-#   * The computer is running on AC power.
-#   * The battery is fully charged.
-#   * The CPU has available processing cycles.
-#   * The wifi is working.
-#   * The script has a list of known good SSIDs.
-#   * The SSID is in a list of known good SSIDs.
-#
-#
-# ## Ideas
-#
-# We use this script for optionally running large network jobs.
-# For example, we use a daily job that checks for a powerful connection,
-# and if so, then the job downloads any available software updates.
-#
-# We use this script as a way to check if we should run streaming.
-# For example, we use this script to do a check when a user signs in:
-# if the user has a powerful connection, then we launch video streaming.
-#
-#
-# ## Exit codes
-#
-#   * 0: success
-#   * 2x: power issue
-#   * 20: computer power is not plugged in
-#   * 21: battery power is not fully charged
-#   * 22: processing power is not sufficient
-#   * 3x: connection issue
-#   * 30: ssid unavailable
-#   * 31: ssid is not in whitelist text
-#   * 32: ssid is in blacklist text
-#   * 33: ssid is not in whitelist file
-#   * 34: ssid is in blacklist file
-#
-# 
-# ## Configuration
-#
-# Create these two files:
-#
-#     ~/.config/powerful-connecton/whitelist.txt
-#     ~/.config/powerful-connecton/blacklist.txt
-#
-# Add any SSID names that you want to either list.
-#
-# Add each SSID name on its own line.
-#
-#
-# ## Cron
-#
-# We like using the `cron` command to schedule recurring jobs.
-# For example, each night we check if we have powerful wifi, 
-# and if so, then we upgrade our system software and apps.
-#
-# Example crontab lines:
-#
-#     0 0 * * * powerful-connection && nice softwareupdate --install --all
-#     0 1 * * * powerful-connection && nice brew upgrade --cleanup
-#     0 2 * * * powerful-connection && nice npm update -g
-#
-# Details:
-#
-#   * We use the `nice` command to run the job at lower priority.
-#
-#   * We use the `softwareupdate` command to update macOS.
-#
-#   * We use the `brew` command to manage many of our software tools.
-#
-#
-# ## References
-#
-# This script is related to these repositories:
-#
-#   * https://github.com/sixarm/airport-ssid
-#   * https://github.com/sixarm/hostinfo-commands
-#   * https://github.com/sixarm/pmset-commands
-#   * https://github.com/sixarm/ssid-powerful
-#   * https://github.com/sixarm/sysctl-commands
-#   * https://github.com/updatecommand/update
-#
-# ## Disclaimers
-#
-#   * This script is suitable for demonstration purposes.
-#   * There is no warranty, express or implied.
-#   * Use at your own risk.
-#   * Your mileage may vary. 
-#
-#
-# ## Tracking
-#
-#   * Command: powerful-connection
-#   * Version: 1.2.0
-#   * Created: 2015-07-01
-#   * Updated: 2017-11-04
-#   * License: GPL
-#   * Contact: Joel Parker Henderson (joel@joelparkerhenderson.com)
-#
-###
+## Program Tracking ##
+
+program_command="poweful-connection"
+program_version="1.3.0"
+program_updated="2017-11-08"
+program_license="GPL"
+program_contact="Joel Parker Henderson (joel@joelparkerhenderson.com)"
+program_variant="$program_command version $program_version updated $program_updated"
+
+## Help Function ##
+
+help(){
+cat << DOC
+This macOS script determines if we have a "powerful connection".
+
+The phrase "powerful connection" is our nickname for when our laptop
+is fully powered up, and has a good wireless connection suitable for
+significant networking, such as downloading big files or streaming data.
+
+Syntax:
+
+    powerful-connection [whitelist file name]
+
+Example:
+
+    powerful-connection whitelist.txt
 
 
-### Helpers
+## Details
 
-out() { >&1 printf %s\\n "$1" ; }
-err() { >&2 printf %s\\n "$1" ; }
-die() { >&2 printf %s\\n "Die $2" ; exit "$1" ; }
-cfg() { out "${XDG_CONFIG_HOME:-$HOME/.config}/$(basename "$0")" ; }
+This script runs these checks:
+
+  * The computer is running on AC power.
+  * The battery is fully charged.
+  * The CPU has available processing cycles.
+  * The wifi is working.
+  * The script has a list of known good SSIDs.
+  * The SSID is in a list of known good SSIDs.
+
+
+## Ideas
+
+We use this script for optionally running large network jobs.
+For example, we use a daily job that checks for a powerful connection,
+and if so, then the job downloads any available software updates.
+
+We use this script as a way to check if we should run streaming.
+For example, we use this script to do a check when a user signs in:
+if the user has a powerful connection, then we launch video streaming.
+
+
+## Exit codes
+
+  * 0: success
+  * 2x: power issue
+  * 20: computer power is not plugged in
+  * 21: battery power is not fully charged
+  * 22: processing power is not sufficient
+  * 3x: connection issue
+  * 30: ssid unavailable
+  * 31: ssid is not in whitelist
+
+
+## Configuration
+
+Create these two files:
+
+    ~/.config/powerful-connecton/whitelist.txt
+    ~/.config/powerful-connecton/blacklist.txt
+
+Add any SSID names that you want to either list.
+
+Add each SSID name on its own line.
+
+
+## Cron
+
+We like using the `cron` command to schedule recurring jobs.
+For example, each night we check if we have powerful wifi, 
+and if so, then we upgrade our system software and apps.
+
+Example crontab lines:
+
+    0 0 * * * powerful-connection && nice softwareupdate --install --all
+    0 1 * * * powerful-connection && nice brew upgrade --cleanup
+    0 2 * * * powerful-connection && nice npm update -g
+
+Details:
+
+  * We use the `nice` command to run the job at lower priority.
+
+  * We use the `softwareupdate` command to update macOS.
+
+  * We use the `brew` command to manage many of our software tools.
+
+
+## References
+
+This script is related to these repositories:
+
+  * https://github.com/sixarm/airport-ssid
+  * https://github.com/sixarm/hostinfo-commands
+  * https://github.com/sixarm/pmset-commands
+  * https://github.com/sixarm/ssid-powerful
+  * https://github.com/sixarm/sysctl-commands
+  * https://github.com/updatecommand/update
+
+
+## Disclaimers
+
+  * This script is suitable for demonstration purposes.
+  * There is no warranty, express or implied.
+  * Use at your own risk.
+  * Your mileage may vary. 
+
+
+## Tracking
+
+  * Command: $program_command
+  * Version: $program_version
+  * Updated: $program_updated
+  * License: $program_license
+  * Contact: $program_contact
+DOC
+}
+
+##
+# Helpers
+#
+# These functions are from our shell script style guide:
+# https://github.com/sixarm/sixarm_shell_script_style_guide
+##
+
+# Tool helpers
+out() { >&1 printf %s\\n "$*" ; }
+err() { >&2 printf %s\\n "$*" ; }
+int() { printf "%d\n" "$@" 2>/dev/null ; }
+
+## Home helpers
+log_home() { out "${LOG_HOME:=$HOME/.log}" ; }; export -f log_home;
+data_home() { out "${XDG_DATA_HOME:=$HOME/.local/share}" ; }; export -f data_home;
+cache_home() { out "${XDG_CACHE_HOME:=$HOME/.cache}" ; }; export -f cache_home;
+config_home() { out "${XDG_CONFIG_HOME:-$HOME/.config}" ; }; export -f config_home;
+runtime_home() { out "${XDG_RUNTIME_HOME:=$HOME/.runtime}" ; }; export -f runtime_home;
+temp_home() { out $(mktemp -d -t "${1:-$(zid)}"); }; export -f temp_home;
+
+## Directory helpers
+log_dir() { out $(log_home) "/$program_command" ; };
+data_dir() { out $(data_home) "/$program_command" ; };
+cache_dir() { out $(cache_home) "/$program_command" ; };
+config_dir() { out $(config_home) "/$program_command" ; };
+runtime_dir() { out $(runtime_home) "/$program_command" ; };
+temp_dir() { out $(temp_home "$program_command"); };
 
 
 ### Configuration
 
-# IF you want to use this source code for your whitelist or blacklist,
-# then edit these variables as you like, with one SSID name per line.
-whitelist_text=""
-blacklist_text=""
-
 # If you want to use config files for your whitelist or blacklist,
 # then edit these files as you like, with one SSID name per line.
-whitelist_file="$(cfg)/whitelist.txt"
-blacklist_file="$(cfg)/blacklist.txt" 
+whitelist_file=$(config_dir)"/whitelist.txt"
+blacklist_file=$(config_dir)"/blacklist.txt" 
+
 
 ### Utilties
-
-pmset_drawing(){
-    pmset -g ps | sed -n "s/^Now drawing from '\(.\+\).*'/\1/p"
-}
-pmset_drawing_ac_power(){
-    pmset -g ps | grep  -qm1 "Now drawing from 'AC Power'" 
-}
-
-pmset_drawing_battery_power(){
-    pmset -g ps | grep  -qm1 "Now drawing from 'Battery Power'" 
-}
-
-pmset_battery_full(){
-    pmset -g batt | grep -qm1 'InternalBattery-0 .*100%;'
-}
-
-pmset_battery_percent(){
-    pmset -g batt | sed -n 's/.*InternalBattery-0 .*[^[:digit:]]\([[:digit:]]\+\)%.*/\1/p'
-}
-
-sysctl_hw_physical_cpu(){
-    sysctl -n hw.physicalcpu
-}
-
-sysctl_vm_loadavg_long(){
-    sysctl -n vm.loadavg | sed -n 's/.* \([[:digit:]\.]\+\).*/\1/p'
-}
-
-sysctl_vm_loadavg_per_physical_cpu(){
-    out $(perl -e 'printf("%.2f", $ARGV[0] / $ARGV[1]);' $(sysctl_vm_loadavg_long) $(sysctl -n hw.physicalcpu))
-}
-
-sysctl_vm_loadable(){
-    perl -e 'exit((($ARGV[0] / $ARGV[1]) < 2) ? 0 : 1);' $(sysctl_vm_loadavg_long) $(sysctl -n hw.physicalcpu)
-}
 
 airport_ssid(){
     /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -n 's/^ *SSID: //p' | grep '.'
 }
 
 
-### Domain
+### Domain Driven Design
 
 power_source_ok(){
-    pmset_drawing_ac_power ||
-        die 20 "because the power source needs to be AC power"
+    pmset -g ps | grep  -qm1 "Now drawing from 'AC Power'" 
 }
 
 battery_charge_ok(){
-    pmset_battery_full ||
-        die 21 "because the battery charge needs to be full" 
+    pmset -g batt | grep -qm1 'InternalBattery-0 .*100%;'
+}
+
+processor_load(){
+    sysctl -n vm.loadavg | cut -d' ' -f4
+}
+
+processor_cpus(){
+    sysctl -n hw.physicalcpu
 }
 
 processor_load_ok(){
-    sysctl_vm_loadable ||
-        die 22 "because the processesor load needs to be lower" 
+    [ $(int $(processor_load)) -lt $(processor_cpus) ]
 }
 
-ssid_ok(){
-    airport_ssid > /dev/null ||
-        die 30 "because we do not have a SSID"
+connection_ssid_ok(){
+    airport_ssid > /dev/null
 }
 
 ssid_whitelist_blacklist_ok(){
     ssid=$(airport_ssid)
 
-    if [[ ! -z "$whitelist_text" && ! "$whitelist_text" =~ $'\n'"$ssid"$'\n' ]]; then 
-        die 31 "because there's whitelist text but the SSID isn't in it: $ssid"
-    fi
-
-    if [[ ! -z "$blacklist_text" && "$blacklist_text" =~ $'\n'"$ssid"$'\n' ]]; then
-        die 32 "because there's blacklist text and the SSID is in it: $ssid"
-    fi
-
     if [ -r "$whitelist_file" ]; then 
         grep -qFxm1 "$ssid" "$whitelist_file" ||
-            die 33 "because there's a whitelist file but the SSID isn't in it: $whitelist_file $ssid"
+            err "because there's a whitelist file but the SSID isn't in it: $whitelist_file $ssid" && exit 33
     fi
 
     if [ -r "$blacklist_file" ]; then
         grep -qFxm1 "$ssid" "$blacklist_file" &&
-            die 34 "because there's a blacklist file and the SSID is in it: $blacklist_file $ssid"
+            err "because there's a blacklist file and the SSID is in it: $blacklist_file $ssid" && exit 34
     fi
 
 }
@@ -220,9 +215,11 @@ ssid_whitelist_blacklist_ok(){
 
 ### Main
 
-power_source_ok
-battery_charge_ok
-processor_load_ok
+power_source_ok || err "The power source needs to be AC power" && exit 20
+battery_charge_ok || err "The battery charge needs to be full" && exit 21
+processor_load_ok || err "The processesor load needs to be lower" && exit 22
+connection_ssid_ok || err "The connection needs to have a SSID" && exit 30
+
 ssid_ok
 ssid_whitelist_blacklist_ok
 exit 0

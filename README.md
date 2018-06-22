@@ -104,8 +104,8 @@ This script is related to these repositories:
 ## Tracking
 
   * Command: powerful-connection
-  * Version: 1.2.0
+  * Version: 1.2.1
   * Created: 2015-07-01
-  * Updated: 2017-11-04
+  * Updated: 2018-06-23
   * License: GPL
   * Contact: Joel Parker Henderson (joel@joelparkerhenderson.com)

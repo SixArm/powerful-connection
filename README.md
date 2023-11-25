@@ -14,9 +14,9 @@ This script runs these checks:
   * The computer is running on AC power.
   * The battery is fully charged.
   * The CPU has available processing cycles.
-  * The wifi is working.
-  * The script has a list of known good SSIDs.
-  * The SSID is in a list of known good SSIDs.
+  * The WiFi is working and is connected to a SSID.
+  * The SSID accept list succeeds.
+  * The SSID reject list succeeds.
 
 
 ## Ideas
@@ -39,11 +39,9 @@ if the user has a powerful connection, then we launch video streaming.
   * 22: processing power is not sufficient
   * 3x: connection issue
   * 30: ssid unavailable
-  * 31: ssid is not in whitelist text
-  * 32: ssid is in blacklist text
-  * 33: ssid is not in whitelist file
-  * 34: ssid is in blacklist file
-
+  * 31: ssid accept list exists, and ssid is not in it
+  * 32: ssid reject list exists, and ssid is in in
+  
 
 ## Configuration
 
@@ -104,8 +102,8 @@ This script is related to these repositories:
 ## Tracking
 
   * Command: powerful-connection
-  * Version: 1.2.1
+  * Version: 2.0.0
   * Created: 2015-07-01
-  * Updated: 2018-06-23
-  * License: GPL
+  * Updated: 2023-11-25T01:22:49Z
+  * License: GPL-2.0 or GPL-3.0 or contact for custom
   * Contact: Joel Parker Henderson (joel@joelparkerhenderson.com)

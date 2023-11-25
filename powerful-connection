@@ -1,12 +1,13 @@
 #!/bin/bash
 set -euf
+. "$(dirname "$(readlink -f "$0")")/unix-shell-script-kit"
 
 ## Program Tracking ##
 
 program_command="poweful-connection"
-program_version="1.3.0"
-program_updated="2017-11-08"
-program_license="GPL"
+program_version="2.0.0"
+program_updated="2023-11-25T01:22:49Z"
+program_license="GPL-2.0 or GPL-3.0 or contact for custom"
 program_contact="Joel Parker Henderson (joel@joelparkerhenderson.com)"
 program_variant="$program_command version $program_version updated $program_updated"
 
@@ -22,11 +23,7 @@ significant networking, such as downloading big files or streaming data.
 
 Syntax:
 
-    powerful-connection [whitelist file name]
-
-Example:
-
-    powerful-connection whitelist.txt
+    powerful-connection
 
 
 ## Details
@@ -36,9 +33,9 @@ This script runs these checks:
   * The computer is running on AC power.
   * The battery is fully charged.
   * The CPU has available processing cycles.
-  * The wifi is working.
-  * The script has a list of known good SSIDs.
-  * The SSID is in a list of known good SSIDs.
+  * The WiFi is working and is connected to a SSID.
+  * The SSID accept list succeeds.
+  * The SSID reject list succeeds.
 
 
 ## Ideas
@@ -61,15 +58,16 @@ if the user has a powerful connection, then we launch video streaming.
   * 22: processing power is not sufficient
   * 3x: connection issue
   * 30: ssid unavailable
-  * 31: ssid is not in whitelist
+  * 31: ssid accept list exists, and ssid is not in it
+  * 32: ssid reject list exists, and ssid is in in
 
 
 ## Configuration
 
 Create these two files:
 
-    ~/.config/powerful-connecton/whitelist.txt
-    ~/.config/powerful-connecton/blacklist.txt
+    ~/.config/powerful-connecton/acceptlist.txt
+    ~/.config/powerful-connecton/rejectlist.txt
 
 Add any SSID names that you want to either list.
 
@@ -78,7 +76,8 @@ Add each SSID name on its own line.
 
 ## Cron
 
-We like using the `cron` command to schedule recurring jobs.
+We like using the 'cron' command to schedule recurring jobs.
+
 For example, each night we check if we have powerful wifi, 
 and if so, then we upgrade our system software and apps.
 
@@ -90,11 +89,11 @@ Example crontab lines:
 
 Details:
 
-  * We use the `nice` command to run the job at lower priority.
+  * We use the 'nice' command to run the job at lower priority.
 
-  * We use the `softwareupdate` command to update macOS.
+  * We use the 'softwareupdate' command to update macOS.
 
-  * We use the `brew` command to manage many of our software tools.
+  * We use the 'brew' command to manage many of our software tools.
 
 
 ## References
@@ -127,41 +126,17 @@ This script is related to these repositories:
 DOC
 }
 
-##
-# Helpers
-#
-# These functions are from our shell script style guide:
-# https://github.com/sixarm/sixarm_shell_script_style_guide
-##
-
-# Tool helpers
-out() { >&1 printf %s\\n "$*" ; }
-err() { >&2 printf %s\\n "$*" ; }
-int() { printf "%d\n" "$@" 2>/dev/null ; }
-
-## Home helpers
-log_home() { out "${LOG_HOME:=$HOME/.log}" ; }; export -f log_home;
-data_home() { out "${XDG_DATA_HOME:=$HOME/.local/share}" ; }; export -f data_home;
-cache_home() { out "${XDG_CACHE_HOME:=$HOME/.cache}" ; }; export -f cache_home;
-config_home() { out "${XDG_CONFIG_HOME:-$HOME/.config}" ; }; export -f config_home;
-runtime_home() { out "${XDG_RUNTIME_HOME:=$HOME/.runtime}" ; }; export -f runtime_home;
-temp_home() { out $(mktemp -d -t "${1:-$(zid)}"); }; export -f temp_home;
-
-## Directory helpers
-log_dir() { out $(log_home) "/$program_command" ; };
-data_dir() { out $(data_home) "/$program_command" ; };
-cache_dir() { out $(cache_home) "/$program_command" ; };
-config_dir() { out $(config_home) "/$program_command" ; };
-runtime_dir() { out $(runtime_home) "/$program_command" ; };
-temp_dir() { out $(temp_home "$program_command"); };
-
+command_exists_or_die pmset
+command_exists_or_die sysctl
 
 ### Configuration
 
-# If you want to use config files for your whitelist or blacklist,
+config_dir="$(user_dir config)"
+
+# If you want to use config files for your acceptlist or rejectlist,
 # then edit these files as you like, with one SSID name per line.
-whitelist_file=$(config_dir)"/whitelist.txt"
-blacklist_file=$(config_dir)"/blacklist.txt" 
+ssid_accept_list_file="$config_dir/ssid-accept-list.txt"
+ssid_reject_list_file="$config_dir/ssid-reject-list.txt" 
 
 
 ### Utilties
@@ -169,7 +144,6 @@ blacklist_file=$(config_dir)"/blacklist.txt"
 airport_ssid(){
     /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | sed -n 's/^ *SSID: //p' | grep '.'
 }
-
 
 ### Domain Driven Design
 
@@ -190,36 +164,35 @@ processor_cpus(){
 }
 
 processor_load_ok(){
-    [ $(int $(processor_load)) -lt $(processor_cpus) ]
+    load="$(int "$(processor_load)")"
+    cpus="$(int "$(processor_cpus)")"
+    [ "$load" -lt "$cpus" ]
 }
 
 connection_ssid_ok(){
     airport_ssid > /dev/null
 }
 
-ssid_whitelist_blacklist_ok(){
+connection_ssid_list_ok(){
     ssid=$(airport_ssid)
 
-    if [ -r "$whitelist_file" ]; then 
-        grep -qFxm1 "$ssid" "$whitelist_file" ||
-            err "because there's a whitelist file but the SSID isn't in it: $whitelist_file $ssid" && exit 33
+    if [ -r "$ssid_accept_list_file" ]; then 
+        grep -qFxm1 "$ssid" "$ssid_accept_list_file" ||
+            die 31 "There's a SSID accept list file but the SSID isn't in it: $ssid_accept_list_file $ssid"
     fi
 
-    if [ -r "$blacklist_file" ]; then
-        grep -qFxm1 "$ssid" "$blacklist_file" &&
-            err "because there's a blacklist file and the SSID is in it: $blacklist_file $ssid" && exit 34
+    if [ -r "$ssid_reject_list_file" ]; then
+        grep -qFxm1 "$ssid" "$ssid_reject_list_file" &&
+            die 32 "There's an SSID reject list file and the SSID is in it: $ssid_reject_list_file $ssid"
     fi
-
 }
 
 
 ### Main
 
-power_source_ok || err "The power source needs to be AC power" && exit 20
-battery_charge_ok || err "The battery charge needs to be full" && exit 21
-processor_load_ok || err "The processesor load needs to be lower" && exit 22
-connection_ssid_ok || err "The connection needs to have a SSID" && exit 30
-
-ssid_ok
-ssid_whitelist_blacklist_ok
+power_source_ok || die 20 "The power source needs to be AC power"
+battery_charge_ok || die 21 "The battery charge needs to be full"
+processor_load_ok || die 22 "The processesor load needs to be lower"
+connection_ssid_ok || die 30 "The connection needs to have a SSID"
+connection_ssid_list_ok
 exit 0
